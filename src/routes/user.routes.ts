@@ -4,6 +4,7 @@ import {
   loginUser,
   getAllUsers,
   getUserById,
+  getDoctors,
 } from "../controllers/user.controller";
 import { verifyToken } from "../middlewares/verifyToken";
 import { allowTo } from "../middlewares/allowTo";
@@ -13,6 +14,7 @@ const router = Router();
 // Public
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.get("/doctors", getDoctors);
 
 // Protected
 router.get("/", verifyToken, allowTo("doctor"), getAllUsers);

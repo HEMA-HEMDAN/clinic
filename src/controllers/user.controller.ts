@@ -1,7 +1,23 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import UserModel, { IUser } from "../models/user.models";
+import User from "../models/user.models";
 import { generateToken } from "../utils/generateToken";
+
+/**
+ * Helper function to transform user to response format with _id
+ */
+function transformUserToResponse(user: User) {
+  const userData = user.toJSON();
+  return {
+    _id: userData._id || user.id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    phone: user.phone || undefined,
+    specialization: user.specialization || undefined,
+    imgLink: user.imgLink || undefined,
+  };
+}
 
 /**
  * Register user (doctor | patient)
@@ -9,48 +25,51 @@ import { generateToken } from "../utils/generateToken";
  */
 export async function registerUser(req: Request, res: Response) {
   try {
-    const { name, email, password, role, phone, specialization } = req.body;
+    const { name, email, password, role, phone, specialization, imgLink } =
+      req.body;
 
     // basic validation (model will also validate)
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const existing = await UserModel.findOne({ email }).lean();
+    const existing = await User.findOne({
+      where: { email: email.toLowerCase().trim() },
+    });
     if (existing)
       return res.status(409).json({ message: "Email already registered" });
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const user = await UserModel.create({
+    const user = await User.create({
       name,
       email,
       password: hashed,
       role,
       phone,
       specialization,
-    } as Partial<IUser>);
+      imgLink,
+    });
 
-    const token = generateToken({ _id: user._id.toString(), role: user.role });
+    const token = generateToken({ _id: user.id.toString(), role: user.role });
 
     return res.status(201).json({
       status: "success",
       data: {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phone: user.phone,
-          specialization: user.specialization,
-        },
+        user: transformUserToResponse(user),
         token,
       },
     });
   } catch (err: any) {
-    // If duplicate key error from mongoose
-    if (err.code === 11000) {
+    // If duplicate key error from Sequelize
+    if (err.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({ message: "Email already registered" });
+    }
+    // Handle validation errors
+    if (err.name === "SequelizeValidationError") {
+      return res
+        .status(400)
+        .json({ message: err.errors?.[0]?.message || "Validation error" });
     }
     console.error("registerUser error:", err);
     return res
@@ -68,29 +87,24 @@ export async function loginUser(req: Request, res: Response) {
     if (!email || !password)
       return res.status(400).json({ message: "Missing credentials" });
 
-    // select password explicitly (schema sets select: false)
-    const user = await UserModel.findOne({ email }).select("+password").exec();
+    // Include password in query (Sequelize doesn't have select: false like Mongoose)
+    const user = await User.findOne({
+      where: { email: email.toLowerCase().trim() },
+    });
     if (!user)
       return res.status(401).json({ message: "Invalid email or password" });
 
-    const match = await bcrypt.compare(password, (user as any).password);
+    const match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(401).json({ message: "Invalid email or password" });
 
-    const token = generateToken({ _id: user._id.toString(), role: user.role });
+    const token = generateToken({ _id: user.id.toString(), role: user.role });
 
     // send safe fields only
     return res.status(200).json({
       status: "success",
       data: {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phone: user.phone,
-          specialization: user.specialization,
-        },
+        user: transformUserToResponse(user),
         token,
       },
     });
@@ -107,10 +121,17 @@ export async function loginUser(req: Request, res: Response) {
  */
 export async function getAllUsers(req: Request, res: Response) {
   try {
-    const users = await UserModel.find().select("-password").lean();
-    return res
-      .status(200)
-      .json({ status: "success", results: users.length, users });
+    const users = await User.findAll({
+      attributes: { exclude: ["password"] },
+    });
+    
+    const usersResponse = users.map((user) => transformUserToResponse(user));
+    
+    return res.status(200).json({
+      status: "success",
+      results: usersResponse.length,
+      users: usersResponse,
+    });
   } catch (err: any) {
     console.error("getAllUsers error:", err);
     return res
@@ -125,11 +146,46 @@ export async function getAllUsers(req: Request, res: Response) {
 export async function getUserById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const user = await UserModel.findById(id).select("-password").lean();
+    const userId = parseInt(id, 10);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    });
+    
     if (!user) return res.status(404).json({ message: "User not found" });
-    return res.status(200).json({ status: "success", user });
+    
+    return res.status(200).json({
+      status: "success",
+      user: transformUserToResponse(user),
+    });
   } catch (err: any) {
     console.error("getUserById error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+}
+
+export async function getDoctors(req: Request, res: Response) {
+  try {
+    const doctors = await User.findAll({
+      where: { role: "doctor" },
+      attributes: { exclude: ["password"] },
+    });
+    
+    const doctorsResponse = doctors.map((user) => transformUserToResponse(user));
+    
+    return res.status(200).json({
+      status: "success",
+      results: doctorsResponse.length,
+      doctors: doctorsResponse,
+    });
+  } catch (err: any) {
+    console.error("getDoctors error:", err);
     return res
       .status(500)
       .json({ message: "Server error", error: err.message });

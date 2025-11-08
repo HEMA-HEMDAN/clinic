@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-  user?: { id: string; role: string };
+  user?: { _id: string; id?: string; role: string };
 }
 
 export const verifyToken = (
@@ -20,8 +20,15 @@ export const verifyToken = (
     const token = authHeader.split(" ")[1];
     const secret = process.env.JWT_SECRET as string;
 
-    const decoded = jwt.verify(token, secret) as { id: string; role: string };
-    req.user = decoded;
+    // Token contains _id field (for frontend compatibility)
+    const decoded = jwt.verify(token, secret) as { _id: string; role: string };
+    
+    // Set user with _id (and id for backward compatibility)
+    req.user = {
+      _id: decoded._id,
+      id: decoded._id, // Also set as id for controllers that might use it
+      role: decoded.role,
+    };
 
     next();
   } catch (error) {

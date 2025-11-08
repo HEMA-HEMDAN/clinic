@@ -1,15 +1,18 @@
 // src/services/appointment.service.ts
-import AppointmentModel, { IAppointment } from "../models/appointment.model";
-import UserModel from "../models/user.models";
+import Appointment, {
+  IAppointmentAttributes,
+} from "../models/appointment.model";
+import User from "../models/user.models";
 import dayjs from "dayjs";
-import mongoose from "mongoose";
+import { Op } from "sequelize";
 
 export function computeEndAt(startAt: Date, durationMinutes: number): Date {
   return dayjs(startAt).add(durationMinutes, "minute").toDate();
 }
 
-export async function doctorExists(doctorId: string): Promise<boolean> {
-  const doc = await UserModel.findById(doctorId).lean();
+export async function doctorExists(doctorId: number | string): Promise<boolean> {
+  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
+  const doc = await User.findByPk(doctorIdNum);
   return !!doc && doc.role === "doctor";
 }
 
@@ -18,36 +21,47 @@ export async function doctorExists(doctorId: string): Promise<boolean> {
  * Overlap condition: existing.startAt < newEnd && existing.endAt > newStart
  */
 export async function hasOverlap(
-  doctorId: string,
+  doctorId: number | string,
   start: Date,
   end: Date,
-  excludeId?: string
+  excludeId?: number | string
 ): Promise<boolean> {
-  const q: any = {
-    doctorId: new mongoose.Types.ObjectId(doctorId),
-    status: { $in: ["pending", "confirmed"] },
-    startAt: { $lt: end },
-    endAt: { $gt: start },
+  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
+  
+  const whereClause: any = {
+    doctorId: doctorIdNum,
+    status: { [Op.in]: ["pending", "confirmed"] },
+    startAt: { [Op.lt]: end },
+    endAt: { [Op.gt]: start },
   };
 
-  if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
-    q._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
+  if (excludeId) {
+    const excludeIdNum = typeof excludeId === "string" ? parseInt(excludeId, 10) : excludeId;
+    if (!isNaN(excludeIdNum)) {
+      whereClause.id = { [Op.ne]: excludeIdNum };
+    }
   }
 
-  const conflict = await AppointmentModel.findOne(q).lean();
+  const conflict = await Appointment.findOne({
+    where: whereClause,
+  });
+
   return !!conflict;
 }
 
 export async function createAppointment(payload: {
-  patientId: string;
-  doctorId: string;
+  patientId: string | number;
+  doctorId: string | number;
   startAt: string | Date;
   durationMinutes: number;
   reason?: string;
-}): Promise<IAppointment> {
+}): Promise<Appointment> {
   const { patientId, doctorId, startAt, durationMinutes, reason } = payload;
 
-  if (!(await doctorExists(doctorId))) {
+  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
+  const patientIdNum = typeof patientId === "string" ? parseInt(patientId, 10) : patientId;
+
+  if (isNaN(doctorIdNum) || !(await doctorExists(doctorIdNum))) {
     const e = new Error("Doctor not found");
     (e as any).status = 404;
     throw e;
@@ -62,22 +76,22 @@ export async function createAppointment(payload: {
 
   const end = computeEndAt(start, durationMinutes);
 
-  const overlap = await hasOverlap(doctorId, start, end);
+  const overlap = await hasOverlap(doctorIdNum, start, end);
   if (overlap) {
     const e = new Error("Time slot conflict");
     (e as any).status = 409;
     throw e;
   }
 
-  const appt = await AppointmentModel.create({
-    patientId: new mongoose.Types.ObjectId(patientId),
-    doctorId: new mongoose.Types.ObjectId(doctorId),
+  const appt = await Appointment.create({
+    patientId: patientIdNum,
+    doctorId: doctorIdNum,
     startAt: start,
     endAt: end,
     durationMinutes,
     reason,
     status: "pending",
-  } as Partial<IAppointment>);
+  });
 
   return appt;
 }
