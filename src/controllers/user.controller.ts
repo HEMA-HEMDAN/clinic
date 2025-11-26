@@ -115,6 +115,35 @@ export async function loginUser(req: Request, res: Response) {
       .json({ message: "Server error", error: err.message });
   }
 }
+// update user
+export async function updateUser(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { name, email, role, phone, specialization, imgLink } = req.body;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.name = name || user.name;
+    user.email = user.email;
+    user.role = role || user.role;
+    user.phone = phone || user.phone;
+    user.specialization = specialization || user.specialization;
+    user.imgLink = imgLink || user.imgLink;
+
+    await user.save();
+
+    return res.status(200).json({
+      status: "success",
+      user: transformUserToResponse(user),
+    });
+  } catch (err: any) {
+    console.error("updateUser error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+}
 
 /**
  * Get all users (example protected route — use allowTo middleware)
@@ -124,9 +153,9 @@ export async function getAllUsers(req: Request, res: Response) {
     const users = await User.findAll({
       attributes: { exclude: ["password"] },
     });
-    
+
     const usersResponse = users.map((user) => transformUserToResponse(user));
-    
+
     return res.status(200).json({
       status: "success",
       results: usersResponse.length,
@@ -147,7 +176,7 @@ export async function getUserById(req: Request, res: Response) {
   try {
     const id = req.params.id;
     const userId = parseInt(id, 10);
-    
+
     if (isNaN(userId)) {
       return res.status(400).json({ message: "Invalid user id" });
     }
@@ -155,9 +184,9 @@ export async function getUserById(req: Request, res: Response) {
     const user = await User.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
-    
+
     if (!user) return res.status(404).json({ message: "User not found" });
-    
+
     return res.status(200).json({
       status: "success",
       user: transformUserToResponse(user),
@@ -176,9 +205,9 @@ export async function getDoctors(req: Request, res: Response) {
       where: { role: "doctor" },
       attributes: { exclude: ["password"] },
     });
-    
+
     const doctorsResponse = doctors.map((user) => transformUserToResponse(user));
-    
+
     return res.status(200).json({
       status: "success",
       results: doctorsResponse.length,
@@ -191,3 +220,4 @@ export async function getDoctors(req: Request, res: Response) {
       .json({ message: "Server error", error: err.message });
   }
 }
+

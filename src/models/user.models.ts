@@ -18,12 +18,11 @@ export interface IUserAttributes {
 }
 
 export interface IUserCreationAttributes
-  extends Optional<IUserAttributes, "id" | "createdAt" | "updatedAt"> {}
+  extends Optional<IUserAttributes, "id" | "createdAt" | "updatedAt"> { }
 
 class User
   extends Model<IUserAttributes, IUserCreationAttributes>
-  implements IUserAttributes
-{
+  implements IUserAttributes {
   public id!: number;
   public name!: string;
   public email!: string;
