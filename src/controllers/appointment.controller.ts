@@ -140,18 +140,12 @@ export async function listAppointments(req: Request, res: Response) {
     const userId = user._id || user.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const userIdNum =
-      typeof userId === "string" ? parseInt(userId, 10) : userId;
-    if (isNaN(userIdNum)) {
-      return res.status(400).json({ message: "Invalid user id" });
-    }
-
     const whereClause: any = {};
 
     if (user.role === "doctor") {
-      whereClause.doctorId = userIdNum;
+      whereClause.doctorId = userId;
     } else {
-      whereClause.patientId = userIdNum;
+      whereClause.patientId = userId;
     }
 
     // optional query params: from, to, status
@@ -197,11 +191,7 @@ export async function listAppointments(req: Request, res: Response) {
 export async function getAppointmentById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const appointmentId = parseInt(id, 10);
-
-    if (isNaN(appointmentId)) {
-      return res.status(400).json({ message: "Invalid id" });
-    }
+    const appointmentId = id;
 
     const appt = await Appointment.findByPk(appointmentId, {
       include: [
@@ -218,19 +208,15 @@ export async function getAppointmentById(req: Request, res: Response) {
 
     const user = (req as any).user;
     const userId = user._id || user.id;
-    // Convert userId to number for comparison with Sequelize integer IDs
-    const userIdNum =
-      typeof userId === "string" ? parseInt(userId, 10) : userId;
-
     // Check permissions
     if (user.role === "patient") {
-      if (appt.patientId !== userIdNum) {
+      if (appt.patientId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
     }
 
     if (user.role === "doctor") {
-      if (appt.doctorId !== userIdNum) {
+      if (appt.doctorId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
     }
@@ -251,11 +237,7 @@ export async function getAppointmentById(req: Request, res: Response) {
 export async function updateAppointment(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const appointmentId = parseInt(id, 10);
-
-    if (isNaN(appointmentId)) {
-      return res.status(400).json({ message: "Invalid id" });
-    }
+    const appointmentId = id;
 
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
@@ -266,20 +248,17 @@ export async function updateAppointment(req: Request, res: Response) {
     if (!appt) return res.status(404).json({ message: "Not found" });
 
     const userId = user._id || user.id;
-    // Convert userId to number for comparison with Sequelize integer IDs
-    const userIdNum =
-      typeof userId === "string" ? parseInt(userId, 10) : userId;
 
     // doctor actions
     if (user.role === "doctor") {
-      if (appt.doctorId !== userIdNum) {
+      if (appt.doctorId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       if (body.status) appt.status = body.status;
       if (body.notes !== undefined) appt.notes = body.notes;
     } else if (user.role === "patient") {
       // patient cancel
-      if (appt.patientId !== userIdNum) {
+      if (appt.patientId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
       if (body.action === "cancel") {

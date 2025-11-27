@@ -9,9 +9,9 @@ export type AppointmentStatus =
   | "completed";
 
 export interface IAppointmentAttributes {
-  id?: number;
-  patientId: number;
-  doctorId: number;
+  id?: number | string;
+  patientId: number | string;
+  doctorId: number | string;
   startAt: Date;
   endAt: Date;
   durationMinutes: number;
@@ -26,15 +26,14 @@ export interface IAppointmentCreationAttributes
   extends Optional<
     IAppointmentAttributes,
     "id" | "status" | "createdAt" | "updatedAt"
-  > {}
+  > { }
 
 class Appointment
   extends Model<IAppointmentAttributes, IAppointmentCreationAttributes>
-  implements IAppointmentAttributes
-{
-  public id!: number;
-  public patientId!: number;
-  public doctorId!: number;
+  implements IAppointmentAttributes {
+  public id!: number | string;
+  public patientId!: number | string;
+  public doctorId!: number | string;
   public startAt!: Date;
   public endAt!: Date;
   public durationMinutes!: number;
@@ -62,17 +61,11 @@ class Appointment
     delete values.id;
 
     // Transform nested associations if they exist
-    // Note: Controllers will handle the proper transformation of patientId/doctorId
-    // when associations are loaded, but we ensure _id is present here
-    if (values.patient) {
-      values.patient._id =
-        values.patient.id?.toString() || values.patientId?.toString();
-      delete values.patient.id;
+    if (values.patient && typeof values.patient.toJSON === "function") {
+      values.patient = values.patient.toJSON();
     }
-    if (values.doctor) {
-      values.doctor._id =
-        values.doctor.id?.toString() || values.doctorId?.toString();
-      delete values.doctor.id;
+    if (values.doctor && typeof values.doctor.toJSON === "function") {
+      values.doctor = values.doctor.toJSON();
     }
 
     return values;
@@ -82,12 +75,12 @@ class Appointment
 Appointment.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
     },
     patientId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
       references: {
         model: User,
@@ -100,7 +93,7 @@ Appointment.init(
       },
     },
     doctorId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
       references: {
         model: User,

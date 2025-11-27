@@ -11,8 +11,7 @@ export function computeEndAt(startAt: Date, durationMinutes: number): Date {
 }
 
 export async function doctorExists(doctorId: number | string): Promise<boolean> {
-  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
-  const doc = await User.findByPk(doctorIdNum);
+  const doc = await User.findByPk(doctorId);
   return !!doc && doc.role === "doctor";
 }
 
@@ -26,20 +25,15 @@ export async function hasOverlap(
   end: Date,
   excludeId?: number | string
 ): Promise<boolean> {
-  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
-  
   const whereClause: any = {
-    doctorId: doctorIdNum,
+    doctorId,
     status: { [Op.in]: ["pending", "confirmed"] },
     startAt: { [Op.lt]: end },
     endAt: { [Op.gt]: start },
   };
 
   if (excludeId) {
-    const excludeIdNum = typeof excludeId === "string" ? parseInt(excludeId, 10) : excludeId;
-    if (!isNaN(excludeIdNum)) {
-      whereClause.id = { [Op.ne]: excludeIdNum };
-    }
+    whereClause.id = { [Op.ne]: excludeId };
   }
 
   const conflict = await Appointment.findOne({
@@ -58,10 +52,7 @@ export async function createAppointment(payload: {
 }): Promise<Appointment> {
   const { patientId, doctorId, startAt, durationMinutes, reason } = payload;
 
-  const doctorIdNum = typeof doctorId === "string" ? parseInt(doctorId, 10) : doctorId;
-  const patientIdNum = typeof patientId === "string" ? parseInt(patientId, 10) : patientId;
-
-  if (isNaN(doctorIdNum) || !(await doctorExists(doctorIdNum))) {
+  if (!(await doctorExists(doctorId))) {
     const e = new Error("Doctor not found");
     (e as any).status = 404;
     throw e;
@@ -76,7 +67,7 @@ export async function createAppointment(payload: {
 
   const end = computeEndAt(start, durationMinutes);
 
-  const overlap = await hasOverlap(doctorIdNum, start, end);
+  const overlap = await hasOverlap(doctorId, start, end);
   if (overlap) {
     const e = new Error("Time slot conflict");
     (e as any).status = 409;
@@ -84,8 +75,8 @@ export async function createAppointment(payload: {
   }
 
   const appt = await Appointment.create({
-    patientId: patientIdNum,
-    doctorId: doctorIdNum,
+    patientId,
+    doctorId,
     startAt: start,
     endAt: end,
     durationMinutes,

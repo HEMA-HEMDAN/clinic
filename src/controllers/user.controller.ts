@@ -175,11 +175,7 @@ export async function getAllUsers(req: Request, res: Response) {
 export async function getUserById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const userId = parseInt(id, 10);
-
-    if (isNaN(userId)) {
-      return res.status(400).json({ message: "Invalid user id" });
-    }
+    const userId = id;
 
     const user = await User.findByPk(userId, {
       attributes: { exclude: ["password"] },

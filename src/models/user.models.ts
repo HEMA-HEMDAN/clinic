@@ -5,7 +5,7 @@ import validator from "validator";
 export type UserRole = "doctor" | "patient";
 
 export interface IUserAttributes {
-  id?: number;
+  id?: number | string;
   name: string;
   email: string;
   password: string;
@@ -23,7 +23,7 @@ export interface IUserCreationAttributes
 class User
   extends Model<IUserAttributes, IUserCreationAttributes>
   implements IUserAttributes {
-  public id!: number;
+  public id!: number | string;
   public name!: string;
   public email!: string;
   public password!: string;
@@ -53,7 +53,7 @@ class User
 User.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
     },

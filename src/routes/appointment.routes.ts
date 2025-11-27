@@ -14,7 +14,7 @@ const router = Router();
 router.use(verifyToken); // all appointment routes require auth
 
 // patient creates
-router.post("/", allowTo("patient"), createAppointment);
+router.post("/",  createAppointment);
 
 // list for current user (patient or doctor)
 router.get("/", allowTo("patient", "doctor"), listAppointments);
