@@ -5,19 +5,11 @@ import Appointment from "../models/appointment.model";
 import User from "../models/user.models";
 import { Op } from "sequelize";
 
-/**
- * Helper function to transform appointment to response format with _id
- * This maintains frontend compatibility by transforming Sequelize associations
- * to match Mongoose populate format
- */
-
 // this one because i was using mongo db but for some resone we need to work with sql
 // who work with it today dah
 function transformAppointmentToResponse(appt: Appointment) {
   const apptData: any = appt.toJSON();
 
-  // Start with base appointment data
-  // Convert IDs to strings for frontend compatibility (matching ObjectId string format)
   const result: any = {
     _id: apptData._id || appt.id.toString(),
     patientId: apptData.patientId
@@ -36,8 +28,6 @@ function transformAppointmentToResponse(appt: Appointment) {
     updatedAt: apptData.updatedAt,
   };
 
-  // Transform nested patient association if present (from Sequelize include)
-  // Mongoose populate replaces patientId with populated object, so we do the same
   if (apptData.patient) {
     result.patientId = {
       _id:
@@ -48,7 +38,6 @@ function transformAppointmentToResponse(appt: Appointment) {
       email: apptData.patient.email,
     };
   } else if (appt.patient) {
-    // Fallback if patient is loaded but not in JSON
     result.patientId = {
       _id: appt.patient.id.toString(),
       name: appt.patient.name,
@@ -56,8 +45,6 @@ function transformAppointmentToResponse(appt: Appointment) {
     };
   }
 
-  // Transform nested doctor association if present (from Sequelize include)
-  // Mongoose populate replaces doctorId with populated object, so we do the same
   if (apptData.doctor) {
     result.doctorId = {
       _id:
@@ -68,7 +55,6 @@ function transformAppointmentToResponse(appt: Appointment) {
       specialization: apptData.doctor.specialization,
     };
   } else if (appt.doctor) {
-    // Fallback if doctor is loaded but not in JSON
     result.doctorId = {
       _id: appt.doctor.id.toString(),
       name: appt.doctor.name,
@@ -76,23 +62,19 @@ function transformAppointmentToResponse(appt: Appointment) {
     };
   }
 
-  // Remove the separate patient/doctor properties if they exist
   delete result.patient;
   delete result.doctor;
 
   return result;
 }
 
-/**
- * Create appointment (patient)
- */
 export async function createAppointment(req: Request, res: Response) {
   try {
-    // Get user ID from token (middleware should set req.user with _id from JWT)
+    // Check if user is authenticated if for any resone it passed verfy token which i dawt but safty is first
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    // Extract user ID - handle both _id (from JWT) and id formats
+    // the id is given to us by the jwt
     const userId = user._id || user.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -100,8 +82,8 @@ export async function createAppointment(req: Request, res: Response) {
 
     // Service will handle string to number conversion
     const appt = await apptService.createAppointment({
-      patientId: userId, // Can be string or number, service handles conversion
-      doctorId, // Can be string or number, service handles conversion
+      patientId: userId,
+      doctorId,
       startAt,
       durationMinutes,
       reason,
@@ -140,7 +122,6 @@ export async function listAppointments(req: Request, res: Response) {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    // Extract user ID - handle both _id (from JWT) and id formats
     const userId = user._id || user.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     // this is the where clause it's an object

@@ -22,7 +22,7 @@ sequelize
   .authenticate()
   .then(() => {
     console.log("✅ Connected to db");
-    // Sync all models (use { alter: true } or { force: true } for development)
+    // if we need to add new tables or alter existing tables we use { alter: true } or { force: true } for development)
     return sequelize.sync({ alter: false });
   })
   .then(() => {

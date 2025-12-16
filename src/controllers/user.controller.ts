@@ -3,9 +3,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/user.models";
 import { generateToken } from "../utils/generateToken";
 
-/**
- * Helper function to transform user to response format with _id
- */
+// this one so we format the resopnd pased on the model so no one mess with it
 function transformUserToResponse(user: User) {
   const userData = user.toJSON();
   return {
@@ -19,16 +17,14 @@ function transformUserToResponse(user: User) {
   };
 }
 
-/**
- * Register user (doctor | patient)
- * Hashing done here intentionally for clarity (as you requested)
- */
+//Register user (doctor | patient)
+
 export async function registerUser(req: Request, res: Response) {
   try {
     const { name, email, password, role, phone, specialization, imgLink } =
       req.body;
 
-    // basic validation (model will also validate)
+    // this one so we check the request body so no one send bad data
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -78,9 +74,6 @@ export async function registerUser(req: Request, res: Response) {
   }
 }
 
-/**
- * Login user
- */
 export async function loginUser(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
@@ -146,16 +139,14 @@ export async function updateUser(req: Request, res: Response) {
   }
 }
 
-/**
- * Get all users (example protected route — use allowTo middleware)
- */
+// this one only doctors can access
 export async function getAllUsers(req: Request, res: Response) {
   try {
     // query = "select * from users"
     const users = await User.findAll({
       attributes: { exclude: ["password"] },
     });
-
+    // this one for clean response
     const usersResponse = users.map((user) => transformUserToResponse(user));
 
     return res.status(200).json({
@@ -171,9 +162,6 @@ export async function getAllUsers(req: Request, res: Response) {
   }
 }
 
-/**
- * Get user by id
- */
 export async function getUserById(req: Request, res: Response) {
   try {
     const id = req.params.id;

@@ -18,11 +18,12 @@ export interface IUserAttributes {
 }
 
 export interface IUserCreationAttributes
-  extends Optional<IUserAttributes, "id" | "createdAt" | "updatedAt"> { }
+  extends Optional<IUserAttributes, "id" | "createdAt" | "updatedAt"> {}
 
 class User
   extends Model<IUserAttributes, IUserCreationAttributes>
-  implements IUserAttributes {
+  implements IUserAttributes
+{
   public id!: number | string;
   public name!: string;
   public email!: string;
@@ -49,7 +50,8 @@ class User
     return values;
   }
 }
-
+// query = "use my db ;"
+// query = " create table users (id int primary key auto_increment, name varchar(255), email varchar(255), password varchar(255), imgLink varchar(255), phone varchar(255), role varchar(20), specialization varchar(255))"
 User.init(
   {
     id: {

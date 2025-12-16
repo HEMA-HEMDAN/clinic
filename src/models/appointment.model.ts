@@ -1,13 +1,13 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../config/database";
 import User from "./user.models";
-
+// this is like enum in java
 export type AppointmentStatus =
   | "pending"
   | "confirmed"
   | "cancelled"
   | "completed";
-
+// this is interface just like in java
 export interface IAppointmentAttributes {
   id?: number | string;
   patientId: number | string;
@@ -21,16 +21,20 @@ export interface IAppointmentAttributes {
   createdAt?: Date;
   updatedAt?: Date;
 }
-
+//  inheritance aho ay 5edma
+// for these uses inside the service for diffrent actions
+// شغل علي نضافه اتحدي بيه ديتول
 export interface IAppointmentCreationAttributes
   extends Optional<
     IAppointmentAttributes,
     "id" | "status" | "createdAt" | "updatedAt"
-  > { }
-
+  > {}
+// class which uses intrerface for attributes
+// شغل عالي اهو
 class Appointment
   extends Model<IAppointmentAttributes, IAppointmentCreationAttributes>
-  implements IAppointmentAttributes {
+  implements IAppointmentAttributes
+{
   public id!: number | string;
   public patientId!: number | string;
   public doctorId!: number | string;
@@ -48,11 +52,13 @@ class Appointment
   public doctor?: User;
 
   // Getter to expose id as _id for frontend compatibility
+  // this one not for show of this becuase it is private security and so on
   public get _id(): string {
     return this.id.toString();
   }
 
   // Override toJSON to include _id field
+  // because is was _id in mongo and the front is already done and i don't want to change it again
   public toJSON() {
     const values: any = { ...this.get() };
     // Add _id field for frontend compatibility
@@ -71,7 +77,10 @@ class Appointment
     return values;
   }
 }
-
+// this one is the model i uses it to create the table
+// but do't wory i provided the queries it's equivalent in the controller's and the services
+// query = "use my db ;"
+// query = "create table appointments (id int primary key auto_increment, patientId int, doctorId int, startAt datetime, endAt datetime, durationMinutes int, status varchar(20), reason varchar(500), notes text, foreign key (patientId) references users(id), foreign key (doctorId) references users(id))"
 Appointment.init(
   {
     id: {

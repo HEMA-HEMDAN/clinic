@@ -18,7 +18,7 @@ router.post("/login", loginUser);
 router.get("/doctors", getDoctors);
 router.put("/:id", verifyToken, updateUser);
 
-// Protected
+// Protected only doctors can access
 router.get("/", verifyToken, allowTo("doctor"), getAllUsers);
 router.get("/:id", verifyToken, allowTo("doctor"), getUserById);
 
