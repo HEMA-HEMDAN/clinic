@@ -21,7 +21,7 @@ import "./models/appointment.model";
 sequelize
   .authenticate()
   .then(() => {
-    console.log("✅ Connected to CockroachDB");
+    console.log("✅ Connected to db");
     // Sync all models (use { alter: true } or { force: true } for development)
     return sequelize.sync({ alter: false });
   })

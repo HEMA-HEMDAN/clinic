@@ -32,7 +32,7 @@ export async function registerUser(req: Request, res: Response) {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-
+    // query = "select email from users where email = :email"
     const existing = await User.findOne({
       where: { email: email.toLowerCase().trim() },
     });
@@ -40,7 +40,7 @@ export async function registerUser(req: Request, res: Response) {
       return res.status(409).json({ message: "Email already registered" });
 
     const hashed = await bcrypt.hash(password, 10);
-
+    // query = "insert into users (name, email, password, role, phone, specialization, imgLink) values (:name, :email, :password, :role ,:phone, :specialization, :imgLink)"
     const user = await User.create({
       name,
       email,
@@ -87,7 +87,7 @@ export async function loginUser(req: Request, res: Response) {
     if (!email || !password)
       return res.status(400).json({ message: "Missing credentials" });
 
-    // Include password in query (Sequelize doesn't have select: false like Mongoose)
+    // query = "select * from users where email = :email"
     const user = await User.findOne({
       where: { email: email.toLowerCase().trim() },
     });
@@ -120,10 +120,11 @@ export async function updateUser(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const { name, email, role, phone, specialization, imgLink } = req.body;
-
+    // query = "select * from users where id = :id"
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ message: "User not found" });
-
+    // this one we already have the user so we don't make a new query to update we just update it here this when we write save it update
+    // on it's own but this is the query for it query = "update users set name = :name, email = :email, role = :role, phone = :phone, specialization = :specialization, imgLink = :imgLink where id = :id"
     user.name = name || user.name;
     user.email = user.email;
     user.role = role || user.role;
@@ -150,6 +151,7 @@ export async function updateUser(req: Request, res: Response) {
  */
 export async function getAllUsers(req: Request, res: Response) {
   try {
+    // query = "select * from users"
     const users = await User.findAll({
       attributes: { exclude: ["password"] },
     });
@@ -176,7 +178,7 @@ export async function getUserById(req: Request, res: Response) {
   try {
     const id = req.params.id;
     const userId = id;
-
+    // query = "select * from users where id = :id"
     const user = await User.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
@@ -197,12 +199,15 @@ export async function getUserById(req: Request, res: Response) {
 
 export async function getDoctors(req: Request, res: Response) {
   try {
+    // query = "select * from users where role = 'doctor'"
     const doctors = await User.findAll({
       where: { role: "doctor" },
       attributes: { exclude: ["password"] },
     });
 
-    const doctorsResponse = doctors.map((user) => transformUserToResponse(user));
+    const doctorsResponse = doctors.map((user) =>
+      transformUserToResponse(user)
+    );
 
     return res.status(200).json({
       status: "success",
@@ -216,4 +221,3 @@ export async function getDoctors(req: Request, res: Response) {
       .json({ message: "Server error", error: err.message });
   }
 }
-

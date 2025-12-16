@@ -10,7 +10,10 @@ export function computeEndAt(startAt: Date, durationMinutes: number): Date {
   return dayjs(startAt).add(durationMinutes, "minute").toDate();
 }
 
-export async function doctorExists(doctorId: number | string): Promise<boolean> {
+export async function doctorExists(
+  doctorId: number | string
+): Promise<boolean> {
+  // query = "select * from users where id = :id and role = 'doctor'"
   const doc = await User.findByPk(doctorId);
   return !!doc && doc.role === "doctor";
 }
@@ -35,7 +38,7 @@ export async function hasOverlap(
   if (excludeId) {
     whereClause.id = { [Op.ne]: excludeId };
   }
-
+  // query = "select * from appointments where doctorId = :doctorId and status in ('pending', 'confirmed') and startAt < :end and endAt > :start"
   const conflict = await Appointment.findOne({
     where: whereClause,
   });
@@ -73,6 +76,7 @@ export async function createAppointment(payload: {
     (e as any).status = 409;
     throw e;
   }
+  // query = "insert into appointments (patientId, doctorId, startAt, endAt, durationMinutes, reason) values (:patientId, :doctorId, :startAt, :endAt, :durationMinutes, :reason)"
 
   const appt = await Appointment.create({
     patientId,

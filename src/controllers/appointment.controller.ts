@@ -10,6 +10,9 @@ import { Op } from "sequelize";
  * This maintains frontend compatibility by transforming Sequelize associations
  * to match Mongoose populate format
  */
+
+// this one because i was using mongo db but for some resone we need to work with sql
+// who work with it today dah
 function transformAppointmentToResponse(appt: Appointment) {
   const apptData: any = appt.toJSON();
 
@@ -105,6 +108,7 @@ export async function createAppointment(req: Request, res: Response) {
     });
 
     // Reload with associations for proper response
+    // query = "select * from appointments where id = :id"
     const appointmentWithAssociations = await Appointment.findByPk(appt.id, {
       include: [
         { model: User, as: "patient", attributes: ["id", "name", "email"] },
@@ -139,7 +143,7 @@ export async function listAppointments(req: Request, res: Response) {
     // Extract user ID - handle both _id (from JWT) and id formats
     const userId = user._id || user.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
+    // this is the where clause it's an object
     const whereClause: any = {};
 
     if (user.role === "doctor") {
@@ -157,6 +161,8 @@ export async function listAppointments(req: Request, res: Response) {
     }
     if (status) whereClause.status = String(status);
 
+    // query = "select * from appointments where doctorId = :doctorId or patientId = :patientId and status in ('pending', 'confirmed') and startAt < :end and endAt > :start"
+    // for the record we should make a switch case for the query params and build the where clause accordingly
     const appts = await Appointment.findAll({
       where: whereClause,
       order: [["startAt", "ASC"]],
@@ -192,7 +198,10 @@ export async function getAppointmentById(req: Request, res: Response) {
   try {
     const id = req.params.id;
     const appointmentId = id;
-
+    // query = "select * from appointments where id = :id"
+    // for the record also in this method we are not using one query only we are using three the first one to get the appointment
+    // the second one to get the patient and the third one to get the doctor
+    // then we make the response object pased on that
     const appt = await Appointment.findByPk(appointmentId, {
       include: [
         { model: User, as: "patient", attributes: ["id", "name", "email"] },
@@ -243,7 +252,7 @@ export async function updateAppointment(req: Request, res: Response) {
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
     const body = req.body;
-
+    // query = "select * from appointments where id = :id"
     const appt = await Appointment.findByPk(appointmentId);
     if (!appt) return res.status(404).json({ message: "Not found" });
 
@@ -281,6 +290,7 @@ export async function updateAppointment(req: Request, res: Response) {
     await appt.save();
 
     // Reload with associations for proper response
+    // query = "update appointments set status = :status, notes = :notes where id = :id"
     const updatedAppt = await Appointment.findByPk(appt.id, {
       include: [
         { model: User, as: "patient", attributes: ["id", "name", "email"] },
