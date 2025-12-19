@@ -12,7 +12,7 @@ app.use(express.json());
 //routes
 app.use("/auth", userRoutes);
 app.use("/appointments", appointmentRoutes);
-
+app.use((req, res) => res.status(404).json({ message: "Not found" }));
 // Import models to ensure they are registered with Sequelize
 import "./models/user.models";
 import "./models/appointment.model";
@@ -29,7 +29,7 @@ sequelize
     console.log("✅ Database models synchronized");
   })
   .catch((err) => {
-    console.error("❌ CockroachDB connection failed:", err);
+    console.error("❌DB connection failed:", err);
   });
 
 const port = process.env.PORT || 3000;

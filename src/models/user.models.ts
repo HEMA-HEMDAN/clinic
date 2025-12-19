@@ -50,7 +50,7 @@ class User
     return values;
   }
 }
-// query = "use my db ;"
+// query = "use mydb;"
 // query = " create table users (id int primary key auto_increment, name varchar(255), email varchar(255), password varchar(255), imgLink varchar(255), phone varchar(255), role varchar(20), specialization varchar(255))"
 User.init(
   {

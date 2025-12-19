@@ -26,7 +26,9 @@ export async function registerUser(req: Request, res: Response) {
 
     // this one so we check the request body so no one send bad data
     if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ message: "Missing required fields give us the correct data " });
     }
     // query = "select email from users where email = :email"
     const existing = await User.findOne({
