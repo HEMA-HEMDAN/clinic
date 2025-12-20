@@ -22,7 +22,7 @@ export const verifyToken = (
 
     // Token contains _id field (for frontend compatibility)
     const decoded = jwt.verify(token, secret) as { _id: string; role: string };
-    
+
     // Set user with _id (and id for backward compatibility)
     req.user = {
       _id: decoded._id,

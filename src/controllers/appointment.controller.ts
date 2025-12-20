@@ -230,6 +230,7 @@ export async function updateAppointment(req: Request, res: Response) {
     const appointmentId = id;
 
     const user = (req as any).user;
+
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
     const body = req.body;
@@ -237,7 +238,7 @@ export async function updateAppointment(req: Request, res: Response) {
     const appt = await Appointment.findByPk(appointmentId);
     if (!appt) return res.status(404).json({ message: "Not found" });
 
-    const userId = user._id || user.id;
+    const userId = +user.id;
 
     // doctor actions
     if (user.role === "doctor") {
